@@ -24,68 +24,84 @@ FILES = {
     "entry_list.csv": "Tournament entry list",
 }
 
-st.set_page_config(page_title="Delivery report builder", page_icon="📄", layout="wide")
+st.set_page_config(page_title="Tournament report from messy logs", page_icon="📄", layout="wide")
 st.markdown("""<style>
 div[data-testid="stMetricValue"]{font-size:1.7rem}
-.small{color:#6b7280;font-size:.9rem}
+.small{opacity:.7;font-size:.9rem}
+.messy td,.messy th{padding:4px 10px;font-size:.92rem}
+.messy code{font-size:.9rem}
+div[data-testid="stImage"] img{border:1px solid rgba(128,128,128,.35);border-radius:6px}
 </style>""", unsafe_allow_html=True)
 
-st.title("Tournament delivery report builder")
-st.markdown(
-    "After a tournament, the production team's logs are spread over several files, typed by different people. "
-    "This tool reads them, **checks every value**, and produces two things: a **client report (PDF)** for the rights holder, "
-    "and an **internal file** with crew overtime for payroll and a to-do list of every data problem.\n\n"
-    "Obvious typos are read automatically and listed. Anything uncertain is **left out of the numbers and flagged**, never guessed."
-)
-st.caption("Demo: the sample tournament, players, crew and audience figures are invented.")
+st.title("Turn messy production logs into a client report")
+st.markdown("After a tournament, the data sits in five files typed by different people. "
+            "One click checks every value and builds the report: **typos are fixed and listed, anything uncertain is held back, never guessed.**")
 
-# ------------------------------------------------------------------ input
-st.subheader("1 · Choose the logs")
-mode = st.radio("Source", ["Try a sample", "Upload my own logs"], horizontal=True, label_visibility="collapsed")
-
-source = None
 work = Path(st.session_state.setdefault("work", tempfile.mkdtemp(prefix="delivery_")))
+run_source = None
+if st.button("▶  Build the sample report", type="primary"):
+    run_source = SAMPLES["Sample week with extra mistakes (test file)"]
+st.caption("Demo: the tournament, players, crew and audience figures are invented. Takes about 10 seconds.")
 
-if mode == "Try a sample":
-    pick = st.selectbox("Sample", list(SAMPLES))
-    source = SAMPLES[pick]
-    if pick.endswith("(test file)"):
-        st.markdown('<p class="small">All logs imported into Google Sheets as one workbook, then filled with typical mistakes: '
-                    "round typos (R33, QQF, “Final”), player and crew name typos, a duplicated row edited by hand, "
-                    "broadcaster typos, two viewer numbers with an extra digit, and shifts dated outside the tournament week.</p>",
-                    unsafe_allow_html=True)
-    with st.expander("Download the sample files to see what goes in"):
+left, right = st.columns([1, 1.15], gap="large")
+with left:
+    st.markdown("**What comes in**: real entries from the sample logs")
+    st.markdown("""<table class="messy">
+<tr><th>Typed in the logs</th><th>What the tool does</th></tr>
+<tr><td><code>11.18</code> · <code>1330</code> · <code>13</code></td><td>three ways to write a time → read as 11:18, 13:30, 13:00</td></tr>
+<tr><td><code>R33</code></td><td>no such round → corrected to R32</td></tr>
+<tr><td><code>Tenniss TV</code></td><td>broadcaster typo → Tennis TV</td></tr>
+<tr><td><code>4.629</code> viewers</td><td>dot as thousands separator → 4 629</td></tr>
+<tr><td><code>130 966</code> viewers</td><td>20× the usual audience for that round, likely an extra digit → <b>held back</b>, not shown as a record</td></tr>
+<tr><td>off air <code>19:12</code>, on air <code>19:29</code></td><td>impossible → <b>left out</b> and flagged to fix</td></tr>
+</table>""", unsafe_allow_html=True)
+with right:
+    st.markdown("**What comes out**: a client PDF report (page 1 shown)")
+    st.image(str(HERE / "assets" / "report_preview.png"), width="stretch")
+    st.markdown('<p class="small">plus an internal Excel file: crew overtime for payroll and a to-do list of every data problem.</p>',
+                unsafe_allow_html=True)
+
+
+# ------------------------------------------------------------------ own logs / other sample
+with st.expander("Use my own logs, or the other sample"):
+    mode = st.radio("Source", ["Try a sample", "Upload my own logs"], horizontal=True, label_visibility="collapsed")
+    source = None
+    if mode == "Try a sample":
+        pick = st.selectbox("Sample", list(SAMPLES))
+        source = SAMPLES[pick]
         files = [source] if source.is_file() else sorted(p for p in source.iterdir() if p.is_file())
+        st.markdown('<p class="small">Download the sample files to see what goes in:</p>', unsafe_allow_html=True)
         for f in files + ([source.parent / "entry_list.csv"] if source.is_file() else []):
             st.download_button(f"⬇ {f.name}", f.read_bytes(), file_name=f.name, key=f"dl_{f.parent.name}_{f.name}")
-else:
-    st.markdown("Upload **one Excel workbook** with the four logs as tabs (e.g. downloaded from Google Sheets), "
-                "**or** the four separate files. The entry list (one player per line) is optional; "
-                "without it the sample tournament's list is used.")
-    up = st.file_uploader("Logs", type=["csv", "xlsx"], accept_multiple_files=True)
-    if up:
-        folder = work / "upload"
-        shutil.rmtree(folder, ignore_errors=True); folder.mkdir(parents=True)
-        names = {u.name.lower(): u for u in up}
-        for u in up: (folder / u.name).write_bytes(u.getvalue())
-        if not (folder / "entry_list.csv").exists():
-            shutil.copy(HERE / "sample" / "entry_list.csv", folder / "entry_list.csv")
-        workbooks = [folder / u.name for u in up if u.name.lower().endswith(".xlsx") and u.name.lower() != "distribution.xlsx"]
-        missing = [f for f in FILES if f != "entry_list.csv" and not (folder / f).exists()]
-        if workbooks:
-            source = workbooks[0]
-        elif missing:
-            st.warning("Still missing: " + ", ".join(FILES[m] + f" ({m})" for m in missing))
-        else:
-            source = folder
+    else:
+        st.markdown("Upload **one Excel workbook** with the four logs as tabs (e.g. downloaded from Google Sheets), "
+                    "**or** the four separate files. The entry list (one player per line) is optional; "
+                    "without it the sample tournament's list is used.")
+        up = st.file_uploader("Logs", type=["csv", "xlsx"], accept_multiple_files=True)
+        if up:
+            folder = work / "upload"
+            shutil.rmtree(folder, ignore_errors=True); folder.mkdir(parents=True)
+            for u in up: (folder / u.name).write_bytes(u.getvalue())
+            if not (folder / "entry_list.csv").exists():
+                shutil.copy(HERE / "sample" / "entry_list.csv", folder / "entry_list.csv")
+            workbooks = [folder / u.name for u in up if u.name.lower().endswith(".xlsx") and u.name.lower() != "distribution.xlsx"]
+            missing = [f for f in FILES if f != "entry_list.csv" and not (folder / f).exists()]
+            if workbooks:
+                source = workbooks[0]
+            elif missing:
+                st.warning("Still missing: " + ", ".join(FILES[m] + f" ({m})" for m in missing))
+            else:
+                source = folder
+    if source and st.button("Build the report"):
+        run_source = source
 
 # ------------------------------------------------------------------ run
-if source and st.button("Build the report", type="primary"):
+if run_source:
     out = work / "out"
     shutil.rmtree(out, ignore_errors=True)
     try:
         with st.spinner("Reading and checking the logs…"):
-            s, matches, faults, dist, shifts, issues = report.build(Path(source), out, pdf=False)
+            s, matches, faults, dist, shifts, issues = report.build(Path(run_source), out, pdf=False)
         pdf_bytes, pdf_error = None, None
         with st.spinner("Making the PDF…"):
             try:
@@ -97,6 +113,7 @@ if source and st.button("Build the report", type="primary"):
             s=s, issues=[vars(i) for i in issues.items], html=(out / "delivery_report.html").read_text(encoding="utf-8"),
             xlsx=(out / "internal_ops.xlsx").read_bytes(), pdf=pdf_bytes, pdf_error=pdf_error,
             overtime=pd.read_excel(out / "internal_ops.xlsx", sheet_name="Overtime (payroll)"))
+        st.toast("Report built: scroll down to see it", icon="✅")
     except SystemExit as e:
         st.error(f"Couldn't read the logs: {e}")
         st.session_state.pop("result", None)
@@ -108,7 +125,7 @@ if source and st.button("Build the report", type="primary"):
 res = st.session_state.get("result")
 if res:
     s = res["s"]
-    st.subheader("2 · Result")
+    st.subheader("Result")
     c = st.columns(4)
     c[0].metric("Matches produced", s["matches"])
     c[1].metric("Hours on air", f"{s['on_air_min'] / 60:.1f}")
