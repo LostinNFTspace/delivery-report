@@ -30,6 +30,8 @@ div[data-testid="stMetricValue"]{font-size:1.7rem}
 .small{opacity:.7;font-size:.9rem}
 .messy td,.messy th{padding:4px 10px;font-size:.92rem}
 .messy code{font-size:.9rem}
+/* keep the page a readable width on big monitors */
+.block-container{max-width:1240px}
 div[data-testid="stImage"] img{border:1px solid rgba(128,128,128,.35);border-radius:6px}
 </style>""", unsafe_allow_html=True)
 
@@ -43,7 +45,7 @@ if st.button("▶  Build the sample report", type="primary"):
     run_source = SAMPLES["Sample week with extra mistakes (test file)"]
 st.caption("Demo: the tournament, players, crew and audience figures are invented. Takes about 10 seconds.")
 
-left, right = st.columns([1, 1.15], gap="large")
+left, right = st.columns([1, 1], gap="large", vertical_alignment="top")
 with left:
     st.markdown("**What comes in**: real entries from the sample logs")
     st.markdown("""<table class="messy">
