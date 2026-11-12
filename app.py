@@ -47,7 +47,10 @@ def show_demo():
 
 
 def demo_strip():
-    bar = st.container(horizontal=True)
+    # phones: the demo and how-to come first, the build button under them
+    st.markdown("<style>@media (max-width: 640px){.st-key-demo_bar{flex-direction:column-reverse;align-items:flex-start}}</style>",
+                unsafe_allow_html=True)
+    bar = st.container(horizontal=True, key="demo_bar")
     build = bar.button("▶  Build the sample report", type="primary")
     bar.space("stretch")
     right = bar.container(horizontal=True, width="content")
