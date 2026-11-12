@@ -49,9 +49,11 @@ def show_demo():
 def demo_strip():
     bar = st.container(horizontal=True)
     build = bar.button("▶  Build the sample report", type="primary")
-    if bar.button("1-min demo", key="demo_btn"):
+    bar.space("stretch")
+    right = bar.container(horizontal=True, width="content")
+    if right.button("▶ 1-min demo", type="primary", key="demo_btn"):
         show_demo()
-    with bar.popover("How it works"):
+    with right.popover("How it works"):
         st.markdown('1. Click **Build the sample report**: five messy log files are checked in about 10 seconds.\n2. Read the data check: what was fixed, what is held back to confirm, what was left out.\n3. Download the client PDF, plus the internal Excel with crew overtime and a to-do list of data problems.\n4. Try your own files under **Use my own logs**.')
     return build
 
