@@ -48,19 +48,21 @@ def show_demo():
 
 def demo_strip():
     bar = st.container(horizontal=True)
-    if bar.button("▶ 1-min demo", type="primary", key="demo_btn"):
+    build = bar.button("▶  Build the sample report", type="primary")
+    if bar.button("1-min demo", key="demo_btn"):
         show_demo()
     with bar.popover("How it works"):
         st.markdown('1. Click **Build the sample report**: five messy log files are checked in about 10 seconds.\n2. Read the data check: what was fixed, what is held back to confirm, what was left out.\n3. Download the client PDF, plus the internal Excel with crew overtime and a to-do list of data problems.\n4. Try your own files under **Use my own logs**.')
+    return build
 
 
 st.title("Turn messy production logs into a client report")
 st.markdown("**Five messy log files become one checked client report.** Typos are fixed and listed, anything uncertain is held back, never guessed.")
-demo_strip()
+build_clicked = demo_strip()
 
 work = Path(st.session_state.setdefault("work", tempfile.mkdtemp(prefix="delivery_")))
 run_source = None
-if st.button("▶  Build the sample report", type="primary"):
+if build_clicked:
     run_source = SAMPLES["Sample week with extra mistakes (test file)"]
 st.caption("Demo: the tournament, players, crew and audience figures are invented. Takes about 10 seconds.")
 
