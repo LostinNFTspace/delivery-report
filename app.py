@@ -2,7 +2,7 @@
 Delivery report builder: web front end for report.py
 Upload a tournament's production logs -> client PDF report + internal payroll and data-issues file.
 """
-import shutil, tempfile
+import os, shutil, tempfile
 from pathlib import Path
 
 import pandas as pd
@@ -35,9 +35,28 @@ div[data-testid="stMetricValue"]{font-size:1.7rem}
 div[data-testid="stImage"] img{border:1px solid rgba(128,128,128,.35);border-radius:6px}
 </style>""", unsafe_allow_html=True)
 
+
+# --- demo strip: a 1-minute video and a short how-to, so a first-time visitor knows what this is
+PORTFOLIO = "https://janis-saulitis-portfolio.netlify.app"
+DEMO_VIDEO = os.environ.get("DEMO_VIDEO", PORTFOLIO + "/media/report.mp4")
+
+
+@st.dialog("Client report in 1 minute", width="large")
+def show_demo():
+    st.video(DEMO_VIDEO, autoplay=True)
+
+
+def demo_strip():
+    bar = st.container(horizontal=True)
+    if bar.button("▶ 1-min demo", type="primary", key="demo_btn"):
+        show_demo()
+    with bar.popover("How it works"):
+        st.markdown('1. Click **Build the sample report**: five messy log files are checked in about 10 seconds.\n2. Read the data check: what was fixed, what is held back to confirm, what was left out.\n3. Download the client PDF, plus the internal Excel with crew overtime and a to-do list of data problems.\n4. Try your own files under **Use my own logs**.')
+
+
 st.title("Turn messy production logs into a client report")
-st.markdown("After a tournament, the data sits in five files typed by different people. "
-            "One click checks every value and builds the report: **typos are fixed and listed, anything uncertain is held back, never guessed.**")
+st.markdown("**Five messy log files become one checked client report.** Typos are fixed and listed, anything uncertain is held back, never guessed.")
+demo_strip()
 
 work = Path(st.session_state.setdefault("work", tempfile.mkdtemp(prefix="delivery_")))
 run_source = None
